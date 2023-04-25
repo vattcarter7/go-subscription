@@ -3,9 +3,10 @@ package data
 import (
 	"context"
 	"errors"
-	"golang.org/x/crypto/bcrypt"
 	"log"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // User is the structure which holds one user from the database.
@@ -81,34 +82,33 @@ func (u *User) GetByEmail(email string) (*User, error) {
 	defer cancel()
 
 	query := `
-			select 
-			    id, 
-			    email, 
-			    first_name, 
-			    last_name, 
-			    password, 
-			    user_active, 
-			    is_admin, 
-			    created_at, 
-			    updated_at 
-			from 
-			    users 
-			where 
-			    email = $1`
+					select 
+							id, 
+							email, 
+							first_name, 
+							last_name, 
+							password, 
+							user_active, 
+							is_admin, 
+							created_at, 
+							updated_at 
+					from 
+							users 
+					where 
+							email = $1`
 
-	var user User
 	row := db.QueryRowContext(ctx, query, email)
 
 	err := row.Scan(
-		&user.ID,
-		&user.Email,
-		&user.FirstName,
-		&user.LastName,
-		&user.Password,
-		&user.Active,
-		&user.IsAdmin,
-		&user.CreatedAt,
-		&user.UpdatedAt,
+		&u.ID,
+		&u.Email,
+		&u.FirstName,
+		&u.LastName,
+		&u.Password,
+		&u.Active,
+		&u.IsAdmin,
+		&u.CreatedAt,
+		&u.UpdatedAt,
 	)
 
 	if err != nil {
@@ -117,12 +117,12 @@ func (u *User) GetByEmail(email string) (*User, error) {
 
 	// get plan, if any
 	query = `select p.id, p.plan_name, p.plan_amount, p.created_at, p.updated_at from 
-			plans p
-			left join user_plans up on (p.id = up.plan_id)
-			where up.user_id = $1`
+					plans p
+					left join user_plans up on (p.id = up.plan_id)
+					where up.user_id = $1`
 
 	var plan Plan
-	row = db.QueryRowContext(ctx, query, user.ID)
+	row = db.QueryRowContext(ctx, query, u.ID)
 
 	err = row.Scan(
 		&plan.ID,
@@ -133,10 +133,10 @@ func (u *User) GetByEmail(email string) (*User, error) {
 	)
 
 	if err == nil {
-		user.Plan = &plan
+		u.Plan = &plan
 	}
 
-	return &user, nil
+	return u, nil
 }
 
 // GetOne returns one user by id
@@ -195,7 +195,7 @@ func (u *User) GetOne(id int) (*User, error) {
 
 // Update updates one user in the database, using the information
 // stored in the receiver u
-func (u *User) Update() error {
+func (u *User) Update(user User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 
@@ -208,12 +208,12 @@ func (u *User) Update() error {
 		where id = $6`
 
 	_, err := db.ExecContext(ctx, stmt,
-		u.Email,
-		u.FirstName,
-		u.LastName,
-		u.Active,
+		user.Email,
+		user.FirstName,
+		user.LastName,
+		user.Active,
 		time.Now(),
-		u.ID,
+		user.ID,
 	)
 
 	if err != nil {
